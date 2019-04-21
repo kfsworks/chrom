@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 2.8)
+set(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+SET(CMAKE_CXX_EXTENSIONS OFF)
+
+project(pear)
+add_executable(${PROJECT_NAME} "main.cpp")
+
+##############
+#FIND_PACKAGE(yaml-cpp)
+#INCLUDE_DIRECTORIES(${YAML_CPP_INCLUDE_DIR})
+#TARGET_LINK_LIBRARIES(example ${YAML_CPP_LIBRARIES})
