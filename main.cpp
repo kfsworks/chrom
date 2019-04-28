@@ -4,71 +4,93 @@
 #include <ctime>
 #include <vector>
 #include <cmath>
+#include <bitset>
 
 using namespace std;
 
-class Chromo{
-private:
-
+class Chromo {
 public:
-  static inline const size_t CHROMO_LEN {16};
+  static inline const size_t CHROMO_LEN {20};
   static inline const size_t GENE_LEN {4};
 
-  string bits;
-  float fitness;
+private:
+  bitset<CHROMO_LEN> bit;
+  double fitness {};
 
-  Chromo() : Chromo("", 0) {}
-  Chromo(string b, float f) : bits {b}, fitness {f} {}
+  inline void chop_bit(vector<bitset<CHROMO_LEN>>& chopped) {
+    for (size_t i {}; i < (CHROMO_LEN / GENE_LEN); i++) {
+      size_t remove = CHROMO_LEN - GENE_LEN;
+      bitset<CHROMO_LEN> tbit {((bit >> (i * GENE_LEN)) << remove) >> remove};
+      chopped.push_back(tbit);
+    }
+  }
 
-  inline string to_string() {
-    vector<string> a;
-    for (size_t no_of_parts {Chromo::CHROMO_LEN / Chromo::GENE_LEN}, i {}; i < no_of_parts; i++) {
-      string g { bits.substr(i * Chromo::GENE_LEN, Chromo::GENE_LEN) };
-      if (g == "0000") {
-        a.push_back("0");
-      } else if (g == "0001") {
-        a.push_back("1");
-      } else if (g == "0010") {
-        a.push_back("2");
-      } else if (g == "0011") {
-        a.push_back("3");
-      } else if (g == "0100") {
-        a.push_back("4");
-      } else if (g == "0101") {
-        a.push_back("5");
-      } else if (g == "0110") {
-        a.push_back("6");
-      } else if (g == "0111") {
-        a.push_back("7");
-      } else if (g == "1000") {
-        a.push_back("8");
-      } else if (g == "1001") {
-        a.push_back("9");
-      } else if (g == "1010") {
-        a.push_back("+");
-      } else if (g == "1011") {
-        a.push_back("-");
-      } else if (g == "1100") {
-        a.push_back("*");
-      } else if (g == "1101") {
-        a.push_back("/");
+public:
+  Chromo() : Chromo("") {}
+  Chromo(string b) : bit {b} {
+    cout << "origi: " <<  bit << endl;
+    double decoded_value = decode_bit();
+    //fitness = 1 / (decoded_value);
+  }
+
+  inline double decode_bit() {
+    vector<bitset<CHROMO_LEN>> chopped;
+    chop_bit(chopped);
+
+    bool isOperRound = false;
+    double total {-1.0};
+    size_t operIdx {};
+    for (size_t i {}; i < chopped.size(); i++) {
+      unsigned long current {chopped[i].to_ulong()};
+      if (isOperRound) {
+        if (current >=10 && current <=13) {
+          operIdx = i;
+          isOperRound = false;
+          cout << "found operator - " << current << endl;
+        }
       } else {
-        a.push_back("na");
+        if (current < 10) {
+          cout << "found number - " << current << endl;
+          if (total < 0) {
+            total = static_cast<double>(current);
+          }
+          else {
+              switch (chopped[operIdx].to_ulong()) {
+                case 10:
+                  total += static_cast<double>(current);
+                  break;
+                case 11:
+                  total -= static_cast<double>(current);
+                  break;
+                case 12:
+                  total *= static_cast<double>(current);
+                  break;
+                case 13:
+                  if (current > 0) {
+                    total /= static_cast<double>(current);
+                  } else {
+                    total += 0;
+                  }
+                  break;
+              }
+          }
+          isOperRound = true;
+          cout << "total become - " << total << endl;
+        }
       }
     }
 
-    string res {};
-    for(auto q : a) {
-      res += q + " ";
-    }
-
-    return res;
+    return total;
   }
+
 
 };
 
+
 class Nature {
 public:
+  inline static const size_t POPULATION {1};
+
   inline static void seed_rand() {
     srand(static_cast<unsigned>(time(nullptr)));
   }
@@ -77,9 +99,9 @@ public:
     return static_cast<unsigned>(rand() / ((RAND_MAX + 1.0f)/ 2) );
   }
 
-  inline static string first_born_chromo_bits() {
+  inline static string first_born_chromo_bits(size_t length) {
     string s {};
-    for (size_t y {}; y < Chromo::CHROMO_LEN; ++y) {
+    for (size_t y {}; y < length; ++y) {
       s = s + (Nature::random() ? "1" : "0");
     }
     return s;
@@ -189,13 +211,11 @@ int main(){
   Nature::seed_rand();
 
   vector<Chromo> chromos;
-  for(size_t x {}; x < 10; x++) {
-    Chromo c {Nature::first_born_chromo_bits(), 0.0f};
-    c.fitness = Nature::assign_fitness(c.bits, 23);
-
+  for(size_t x {}; x < Nature::POPULATION; x++) {
+    Chromo c {Nature::first_born_chromo_bits(Chromo::CHROMO_LEN)};
+   // c.fitness = Nature::assign_fitness(c.bits, 23);
     chromos.push_back(c);
-
-    cout << chromos[x].bits << " " << chromos[x].to_string() << " - " << chromos[x].fitness << endl;
+    //c.print();
   }
 
  // float target {23.0f};
