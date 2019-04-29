@@ -240,35 +240,25 @@ int main(){
   }//end while
 
 
-void Mutate(string &bits)
-{
-	for (int i=0; i<bits.length(); i++)
-	{
-		if (RANDOM_NUM < MUTATION_RATE)
-		{
-			if (bits.at(i) == '1')
-
+void Mutate(string &bits) {
+	for (int i=0; i<bits.length(); i++) {
+		if (RANDOM_NUM < MUTATION_RATE) {
+			if (bits.at(i) == '1') {
 				bits.at(i) = '0';
-
-			else
-
+            } else {
 				bits.at(i) = '1';
+            }
 		}
 	}
-
-	return;
 }
 
 //---------------------------------- Crossover ---------------------------------------
-//
 //  Dependent on the CROSSOVER_RATE this function selects a random point along the
 //  lenghth of the chromosomes and swaps all the  bits after that point.
 //------------------------------------------------------------------------------------
-void Crossover(string &offspring1, string &offspring2)
-{
+void Crossover(string &offspring1, string &offspring2) {
   //dependent on the crossover rate
-  if (RANDOM_NUM < CROSSOVER_RATE)
-  {
+  if (RANDOM_NUM < CROSSOVER_RATE) {
     //create a random crossover point
     int crossover = (int) (RANDOM_NUM * CHROMO_LENGTH);
 
@@ -279,27 +269,23 @@ void Crossover(string &offspring1, string &offspring2)
   }
 }
 
-
 //--------------------------------Roulette-------------------------------------------
-//
 //	selects a chromosome from the population via roulette wheel selection
 //------------------------------------------------------------------------------------
-string Roulette(int total_fitness, chromo_typ* Population)
-{
+string Roulette(int total_fitness, chromo_typ* Population) {
 	//generate a random number between 0 & total fitness count
 	float Slice = (float)(RANDOM_NUM * total_fitness);
 
 	//go through the chromosones adding up the fitness so far
 	float FitnessSoFar = 0.0f;
 
-	for (int i=0; i<POP_SIZE; i++)
-	{
+	for (int i=0; i<POP_SIZE; i++) {
 		FitnessSoFar += Population[i].fitness;
 
 		//if the fitness so far > random number return the chromo at this point
-		if (FitnessSoFar >= Slice)
-
+		if (FitnessSoFar >= Slice) {
 			return Population[i].bits;
+        }
 	}
 
 	return "";
