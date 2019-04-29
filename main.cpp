@@ -10,12 +10,13 @@ using namespace std;
 
 class Chromo {
 public:
-  static inline const size_t CHROMO_LEN {20};
+  static inline const size_t CHROMO_LEN {40};
   static inline const size_t GENE_LEN {4};
 
 private:
   bitset<CHROMO_LEN> bit;
   double fitness {};
+  long decoded_value {};
 
   inline void chop_bit(vector<bitset<CHROMO_LEN>>& chopped) {
     for (size_t i {}; i < (CHROMO_LEN / GENE_LEN); i++) {
@@ -26,22 +27,33 @@ private:
   }
 
 public:
-  Chromo() : Chromo("") {}
   Chromo(string b) : bit {b} {
     cout << "origi: " <<  bit << endl;
-    double decoded_value = decode_bit();
-    //fitness = 1 / (decoded_value);
+    decoded_value = decode_bit();
   }
 
-  inline double decode_bit() {
+  inline long get_decoded_value() {
+    return decoded_value;
+  }
+
+  inline void set_fitness(double f) {
+    fitness = f;
+    cout << "fitness: " <<  fitness << endl;
+  }
+
+  inline double get_fitness() {
+    return fitness;
+  }
+
+  inline long decode_bit() {
     vector<bitset<CHROMO_LEN>> chopped;
     chop_bit(chopped);
 
     bool isOperRound = false;
-    double total {-1.0};
+    long total {0L};
     size_t operIdx {};
     for (size_t i {}; i < chopped.size(); i++) {
-      unsigned long current {chopped[i].to_ulong()};
+      long current {static_cast<long>(chopped[i].to_ulong())}; // no worry for overflow since design it should be 4 bit value
       if (isOperRound) {
         if (current >=10 && current <=13) {
           operIdx = i;
@@ -51,23 +63,23 @@ public:
       } else {
         if (current < 10) {
           cout << "found number - " << current << endl;
-          if (total < 0) {
-            total = static_cast<double>(current);
+          if (total <= 0) {
+            total = current;
           }
           else {
               switch (chopped[operIdx].to_ulong()) {
                 case 10:
-                  total += static_cast<double>(current);
+                  total += current;
                   break;
                 case 11:
-                  total -= static_cast<double>(current);
+                  total -= current;
                   break;
                 case 12:
-                  total *= static_cast<double>(current);
+                  total *= current;
                   break;
                 case 13:
                   if (current > 0) {
-                    total /= static_cast<double>(current);
+                    total /= current;  // ignore truncation
                   } else {
                     total += 0;
                   }
@@ -107,118 +119,29 @@ public:
     return s;
   }
 
-  inline static float assign_fitness(string bits, int target_value) {
-    int buffer[(int)(Chromo::CHROMO_LEN / Chromo::GENE_LEN)];
-    int num_elements = Nature::parse_bits(bits, buffer);
-
-    // ok, we have a buffer filled with valid values of: operator - number - operator - number..
-    float result = 0.0f;
-    for (int i=0; i < num_elements-1; i+=2) {
-      switch (buffer[i]) {
-        case 10:
-          result += buffer[i+1];
-          break;
-        case 11:
-          result -= buffer[i+1];
-          break;
-        case 12:
-          result *= buffer[i+1];
-          break;
-        case 13:
-          result /= buffer[i+1];
-          break;
-      }
-    }
-
-    // Now we calculate the fitness. First check to see if a solution has been found
-    // and assign an arbitarily high fitness score if this is so.
-    if (result == (float)target_value) {
-      return 999.0f;
+  inline static double cal_fitness(long target, long chromo_value) {
+    if (chromo_value == target) {
+      return 999.0;
     } else {
-      return 1/(float)fabs((double)(target_value - result));
+      return 1/fabs(target - chromo_value);
     }
-  }
-
-  inline static int bin_to_dec(string bits) {
-        int val			 = 0;
-        int value_to_add = 1;
-        for (int i = bits.length(); i > 0; i--) {
-                if (bits.at(i-1) == '1') {
-                        val += value_to_add;
-                }
-                value_to_add *= 2;
-        }
-        return val;
-  }
-
-  inline static int parse_bits(string bits, int* buffer) {
-    //counter for buffer position
-    int cBuff = 0;
-
-          // step through bits a gene at a time until end and store decimal values
-          // of valid operators and numbers. Don't forget we are looking for operator -
-          // number - operator - number and so on... We ignore the unused genes 1111
-          // and 1110
-
-          //flag to determine if we are looking for an operator or a number
-          bool bOperator = true;
-
-          //storage for decimal value of currently tested gene
-          int this_gene = 0;
-
-          for (int i=0; i<Chromo::CHROMO_LEN; i+=Chromo::GENE_LEN)
-          {
-                  //convert the current gene to decimal
-                  this_gene = Nature::bin_to_dec(bits.substr(i, Chromo::GENE_LEN));
-
-                  //find a gene which represents an operator
-                   if (bOperator) {
-                          if ( (this_gene < 10) || (this_gene > 13) ) {
-                                  continue;
-                          } else {
-                                  bOperator		= false;
-                                  buffer[cBuff++] = this_gene;
-                                  continue;
-                          }
-                  } else {
-                  //find a gene which represents a number
-                          if (this_gene > 9) {
-                                  continue;
-                            } else {
-                                  bOperator		= true;
-                                  buffer[cBuff++] = this_gene;
-                                  continue;
-                          }
-                  }
-
-          }//next gene
-
-          //	now we have to run through buffer to see if a possible divide by zero
-          //	is included and delete it. (ie a '/' followed by a '0'). We take an easy
-          //	way out here and just change the '/' to a '+'. This will not effect the
-          //	evolution of the solution
-           for (int i=0; i<cBuff; i++) {
-                  if ( (buffer[i] == 13) && (buffer[i+1] == 0) ) {
-                          buffer[i] = 10;
-                    }
-          }
-
-          return cBuff;
   }
 };
 
 int main(){
   Nature::seed_rand();
 
+  // assume target is 23
+  long target = 23;
+
   vector<Chromo> chromos;
   for(size_t x {}; x < Nature::POPULATION; x++) {
     Chromo c {Nature::first_born_chromo_bits(Chromo::CHROMO_LEN)};
-   // c.fitness = Nature::assign_fitness(c.bits, 23);
+    c.set_fitness(Nature::cal_fitness(target, c.get_decoded_value()));
     chromos.push_back(c);
     //c.print();
   }
 
- // float target {23.0f};
 
   return 0;
 }
@@ -229,7 +152,6 @@ int main(){
 #define MUTATION_RATE             0.001
 #define POP_SIZE                  100			//must be an even number
 #define CHROMO_LENGTH             300
-#define GENE_LENGTH               4
 #define MAX_ALLOWABLE_GENERATIONS	400
 
   while (true)
@@ -256,87 +178,65 @@ int main(){
 	  bool bFound = false;
 
 	  //enter the main GA loop
-	  while(!bFound)
-	  {
-		  //this is used during roulette wheel sampling
-		  float TotalFitness = 0.0f;
+	  while(!bFound) {
+		 //this is used during roulette wheel sampling
+		 float TotalFitness = 0.0f;
 
-                  // test and update the fitness of every chromosome in the
-      // population
-                  for (int i=0; i<POP_SIZE; i++)
-                  {
-                          Population[i].fitness = AssignFitness(Population[i].bits, Target);
-
-			  TotalFitness += Population[i].fitness;
-		  }
+         // test and update the fitness of every chromosome in the population
+         for (int i=0; i<POP_SIZE; i++) {
+             Population[i].fitness = AssignFitness(Population[i].bits, Target);
+			 TotalFitness += Population[i].fitness;
+		 }
 
 		  // check to see if we have found any solutions (fitness will be 999)
-		  for (i=0; i<POP_SIZE; i++)
-		  {
-			  if (Population[i].fitness == 999.0f)
-			  {
+		  for (i=0; i<POP_SIZE; i++) {
+			  if (Population[i].fitness == 999.0f) {
 	  cout << "\nSolution found in " << GenerationsRequiredToFindASolution << " generations!" << endl << endl;;
-
 				  PrintChromo(Population[i].bits);
-
 				  bFound = true;
-
-	  break;
+	              break;
 			  }
 		  }
 
-                  // create a new population by selecting two parents at a time and creating offspring
-      // by applying crossover and mutation. Do this until the desired number of offspring
-      // have been created.
+          // create a new population by selecting two parents at a time and creating offspring
+          // by applying crossover and mutation. Do this until the desired number of offspring have been created.
 
 		  //define some temporary storage for the new population we are about to create
 		  chromo_typ temp[POP_SIZE];
-
 		  int cPop = 0;
 
 		  //loop until we have created POP_SIZE new chromosomes
-		  while (cPop < POP_SIZE)
-		  {
+		  while (cPop < POP_SIZE) {
 			  // we are going to create the new population by grabbing members of the old population
 			  // two at a time via roulette wheel selection.
 			  string offspring1 = Roulette(TotalFitness, Population);
 			  string offspring2 = Roulette(TotalFitness, Population);
 
-        //add crossover dependent on the crossover rate
-        Crossover(offspring1, offspring2);
+              //add crossover dependent on the crossover rate
+              Crossover(offspring1, offspring2);
 
 			  //now mutate dependent on the mutation rate
 			  Mutate(offspring1);
 			  Mutate(offspring2);
 
-                          //add these offspring to the new population. (assigning zero as their
-        //fitness scores)
-                          temp[cPop++] = chromo_typ(offspring1, 0.0f);
-                          temp[cPop++] = chromo_typ(offspring2, 0.0f);
-
-                  }//end loop
+              //add these offspring to the new population. (assigning zero as their fitness scores)
+              temp[cPop++] = chromo_typ(offspring1, 0.0f);
+              temp[cPop++] = chromo_typ(offspring2, 0.0f);
+          }//end loop
 
 		  //copy temp population into main population array
-		  for (i=0; i<POP_SIZE; i++)
-      {
-                          Population[i] = temp[i];
-      }
+		  for (i=0; i<POP_SIZE; i++) {
+              Population[i] = temp[i];
+          }
 
-                  ++GenerationsRequiredToFindASolution;
+          ++GenerationsRequiredToFindASolution;
 
-		  // exit app if no solution found within the maximum allowable number
-		  // of generations
-		  if (GenerationsRequiredToFindASolution > MAX_ALLOWABLE_GENERATIONS)
-		  {
+		  // exit app if no solution found within the maximum allowable number of generations
+		  if (GenerationsRequiredToFindASolution > MAX_ALLOWABLE_GENERATIONS) {
 			  cout << "No solutions found this run!";
-
 			  bFound = true;
 		  }
-
 	  }
-
-    cout << "\n\n\n";
-
   }//end while
 
 
