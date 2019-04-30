@@ -32,6 +32,10 @@ public:
     decoded_value = decode_bit();
   }
 
+  inline bitset<CHROMO_LEN> get_bit() {
+    return bit;
+  }
+
   inline long get_decoded_value() {
     return decoded_value;
   }
@@ -43,6 +47,38 @@ public:
 
   inline double get_fitness() {
     return fitness;
+  }
+
+  inline string to_string() {
+    return bit.to_string();
+  }
+
+  inline void mutate(bitset<CHROMO_LEN>& b) {
+    for (size_t i {}; i < b.size(); ++i) {
+      double rate = Chromo::random(0.999);
+      if (rate < 0.001) {
+        b.flip(i);
+      }
+    }
+  }
+
+  inline Chromo mating(Chromo& c) {
+    long pos = static_cast<long>(Chromo::random(static_cast<double>(Chromo::CHROMO_LEN)));
+    bitset<CHROMO_LEN> t1 = (bit >> pos) << pos;
+    bitset<CHROMO_LEN> t2 = c.get_bit();
+    t2 = (t2 << (CHROMO_LEN - pos)) >> (CHROMO_LEN - pos);
+    cout << "t1 = " << t1 <<endl;
+    cout << "t2 = " << t2 <<endl;
+    bitset<CHROMO_LEN> kid_chromo = (t1 | t2);
+    cout << "before m: " << kid_chromo << endl;
+    mutate(kid_chromo);
+    cout << "after  m: " << kid_chromo << endl;
+    return Chromo(kid_chromo.to_string());
+  }
+
+  inline static double random(double biased_factor) {
+    double biased = (RAND_MAX + 1u) / biased_factor;
+    return static_cast<double>(rand() / biased);
   }
 
   inline long decode_bit() {
@@ -101,20 +137,25 @@ public:
 
 class Nature {
 public:
-  inline static const size_t POPULATION {1};
+  inline static const size_t POPULATION {5};
 
   inline static void seed_rand() {
     srand(static_cast<unsigned>(time(nullptr)));
   }
 
-  inline static unsigned random() {
+  inline static unsigned random_bit() {
     return static_cast<unsigned>(rand() / ((RAND_MAX + 1.0f)/ 2) );
+  }
+
+  inline static double random(double biased_factor) {
+    double biased = (RAND_MAX + 1u) / biased_factor;
+    return static_cast<double>(rand() / biased);
   }
 
   inline static string first_born_chromo_bits(size_t length) {
     string s {};
     for (size_t y {}; y < length; ++y) {
-      s = s + (Nature::random() ? "1" : "0");
+      s = s + (Nature::random_bit() ? "1" : "0");
     }
     return s;
   }
@@ -126,28 +167,52 @@ public:
       return 1/fabs(target - chromo_value);
     }
   }
+
+  inline static Chromo& selection(double total_fitness, vector<Chromo>& chromos) {
+    double selection_point = Nature::random(total_fitness);
+    for(size_t x {}; x < Nature::POPULATION; x++) {
+      if (chromos[x].get_fitness() >= selection_point) {
+        return chromos[x];
+      } else {
+        selection_point -= chromos[x].get_fitness();
+      }
+    }
+
+    cout << "should not get to here, but if it is, throw exception" << endl;
+    throw string("should not get to here, but if it is, throw exception");
+  }
 };
 
 int main(){
   Nature::seed_rand();
 
-  // assume target is 23
-  long target = 23;
+  bool found = false;
+  long target = 23; // assume target is 23
 
   vector<Chromo> chromos;
   for(size_t x {}; x < Nature::POPULATION; x++) {
     Chromo c {Nature::first_born_chromo_bits(Chromo::CHROMO_LEN)};
     c.set_fitness(Nature::cal_fitness(target, c.get_decoded_value()));
     chromos.push_back(c);
-    //c.print();
   }
 
+  while (!found) {
+    double total_fitness {};
+    for(size_t x {}; x < Nature::POPULATION; x++) {
+      total_fitness += chromos[x].get_fitness();
+    }
+    //cout << "total fitness: " << total_fitness << endl;
+
+    Chromo& c1 = Nature::selection(total_fitness, chromos);
+    Chromo& c2 = Nature::selection(total_fitness, chromos);
+    Chromo x = c1.mating(c2);
+
+  }
 
   return 0;
 }
 
 /*
- *
 #define CROSSOVER_RATE            0.7
 #define MUTATION_RATE             0.001
 #define POP_SIZE                  100			//must be an even number
@@ -240,54 +305,5 @@ int main(){
   }//end while
 
 
-void Mutate(string &bits) {
-	for (int i=0; i<bits.length(); i++) {
-		if (RANDOM_NUM < MUTATION_RATE) {
-			if (bits.at(i) == '1') {
-				bits.at(i) = '0';
-            } else {
-				bits.at(i) = '1';
-            }
-		}
-	}
-}
 
-//---------------------------------- Crossover ---------------------------------------
-//  Dependent on the CROSSOVER_RATE this function selects a random point along the
-//  lenghth of the chromosomes and swaps all the  bits after that point.
-//------------------------------------------------------------------------------------
-void Crossover(string &offspring1, string &offspring2) {
-  //dependent on the crossover rate
-  if (RANDOM_NUM < CROSSOVER_RATE) {
-    //create a random crossover point
-    int crossover = (int) (RANDOM_NUM * CHROMO_LENGTH);
-
-    string t1 = offspring1.substr(0, crossover) + offspring2.substr(crossover, CHROMO_LENGTH);
-    string t2 = offspring2.substr(0, crossover) + offspring1.substr(crossover, CHROMO_LENGTH);
-
-    offspring1 = t1; offspring2 = t2;
-  }
-}
-
-//--------------------------------Roulette-------------------------------------------
-//	selects a chromosome from the population via roulette wheel selection
-//------------------------------------------------------------------------------------
-string Roulette(int total_fitness, chromo_typ* Population) {
-	//generate a random number between 0 & total fitness count
-	float Slice = (float)(RANDOM_NUM * total_fitness);
-
-	//go through the chromosones adding up the fitness so far
-	float FitnessSoFar = 0.0f;
-
-	for (int i=0; i<POP_SIZE; i++) {
-		FitnessSoFar += Population[i].fitness;
-
-		//if the fitness so far > random number return the chromo at this point
-		if (FitnessSoFar >= Slice) {
-			return Population[i].bits;
-        }
-	}
-
-	return "";
-}
  */
