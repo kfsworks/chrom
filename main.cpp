@@ -205,10 +205,15 @@ class NumericalChromo {
   public:
     static inline const int CHROMO_LEN {4};
     vector<int> ch;
+
+    NumericalChromo() {
+    }
 };
 
 int main(){
   Nature::seed_rand();
+  int pop {6};
+
   while(true) {
     cout << Nature::random_int(10) << endl;
   }
