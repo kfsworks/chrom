@@ -170,6 +170,16 @@ public:
     return static_cast<double>(rand() / biased);
   }
 
+  inline static double roulette_wheel_pivot() {
+    int count {random_int(6)+1};
+
+    double v {1.0};
+    for (int c {}; c < count; c++) {
+      v = Nature::random(v);
+    }
+    return v;
+  }
+
   inline static string first_born_chromo_bits(size_t length) {
     string s {};
     for (size_t y {}; y < length; ++y) {
@@ -199,23 +209,92 @@ public:
     cout << "should not get to here, but if it is, throw exception" << endl;
     throw string("should not get to here, but if it is, throw exception");
   }
+
 };
 
 class NumericalChromo {
+  private:
+    inline int cal_numerical_result() {
+    // f(x) = ((a + 2b + 3c + 4d) - 30)
+      return fabs( (ch[0] + (ch[1] * 2) + (ch[2] * 3) + (ch[3] * 4))  - 30 ) ;
+    }
+
   public:
     static inline const int CHROMO_LEN {4};
     vector<int> ch;
+    double fitness {0};
 
     NumericalChromo() {
+      for(size_t i {}; i < CHROMO_LEN; i++) {
+        ch.push_back(Nature::random_int(30));
+      }
+
+      cout << "initial ...";
+      print();
+      cout << endl;
+    }
+
+    inline double cal_fitness() {
+      int v = cal_numerical_result();
+      fitness = 1.0 / (1 + v);
+      return fitness;
+    }
+
+    inline void print() {
+      for(size_t i {}; i < CHROMO_LEN; i++) {
+        cout << ch[i] << " ";
+      }
+      cout << " : f = " << fitness << endl;
     }
 };
 
 int main(){
   Nature::seed_rand();
-  int pop {6};
+  size_t pop {6};
 
-  while(true) {
-    cout << Nature::random_int(10) << endl;
+  //vector<unique_ptr<NumericalChromo>> chromos; 
+  vector<shared_ptr<NumericalChromo>> chromos; 
+  for(size_t i {}; i < pop; i++) {
+    //chromos.push_back(make_unique<NumericalChromo>());
+    chromos.push_back(make_shared<NumericalChromo>());
+  }
+
+  bool found {false};
+  while (!found) {
+
+    double total_fitness = 0;
+    for (size_t i {}; i < pop; i++) {
+      total_fitness += chromos[i]->cal_fitness();
+    }
+
+    cout << "t: " << total_fitness << endl;
+    cout << "p: " << Nature::random(total_fitness) << endl;
+    /*
+    vector<shared_ptr<NumericalChromo>> tchromos; 
+    for (size_t i {}; i < pop; i++) {
+      double rwp = Nature::roulette_wheel_pivot();
+      for (size_t ii {}; ii < pop; ii++) {
+        if (chromos[ii]->fitness > rwp) {
+        } else {
+          rwp -= chromos[ii]->fitness;
+        }
+      }
+    }*/
+
+    /*
+    for(size_t i {}; i < pop; i++) {
+      chromos[i]->print();
+    }
+    cout << "test" << endl;
+    auto x = chromos[1];
+    chromos[1] = chromos[0];
+    chromos[0] = x;
+    for(size_t i {}; i < pop; i++) {
+      chromos[i]->print();
+    }
+ */
+
+    found = true;
   }
 
     /*
