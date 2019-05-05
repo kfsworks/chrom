@@ -161,6 +161,10 @@ public:
     return static_cast<unsigned>(rand() / ((RAND_MAX + 1.0f)/ 2) );
   }
 
+  inline static int random_int(int biased_factor) {
+    return static_cast<int>(rand() / ((RAND_MAX + 1u) / biased_factor));
+  }
+
   inline static double random(double biased_factor) {
     double biased = (RAND_MAX + 1u) / biased_factor;
     return static_cast<double>(rand() / biased);
@@ -197,9 +201,19 @@ public:
   }
 };
 
+class NumericalChromo {
+  public:
+    static inline const int CHROMO_LEN {4};
+    vector<int> ch;
+};
+
 int main(){
   Nature::seed_rand();
+  while(true) {
+    cout << Nature::random_int(10) << endl;
+  }
 
+    /*
   bool found = false;
   long target = 23; // assume target is 23
 
@@ -237,7 +251,8 @@ int main(){
     for(size_t x {}; x < Nature::POPULATION; x++) {
       chromos.push_back( tchromos[x] );
     }
-  }
+  } */
+
 
   return 0;
 }
