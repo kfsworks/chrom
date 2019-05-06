@@ -260,6 +260,7 @@ int main(){
   }
 
   bool found {false};
+  int loop_count {};
   while (!found) {
 
     double total_fitness = 0;
@@ -267,34 +268,96 @@ int main(){
       total_fitness += chromos[i]->cal_fitness();
     }
 
-    cout << "t: " << total_fitness << endl;
-    cout << "p: " << Nature::random(total_fitness) << endl;
-    /*
     vector<shared_ptr<NumericalChromo>> tchromos; 
-    for (size_t i {}; i < pop; i++) {
-      double rwp = Nature::roulette_wheel_pivot();
-      for (size_t ii {}; ii < pop; ii++) {
-        if (chromos[ii]->fitness > rwp) {
-        } else {
-          rwp -= chromos[ii]->fitness;
+
+    for (size_t ii {}; ii < pop; ii++) {
+      double rwheel_pivot = Nature::random(total_fitness);
+      for (size_t i {}; i < chromos.size(); i++) {
+        if (chromos[i] != nullptr) { 
+          if (chromos[i]->fitness > rwheel_pivot) {
+              total_fitness -= chromos[i]->fitness;
+              tchromos.push_back(chromos[i]);
+              chromos[i] = nullptr;
+              break;
+          } else {
+            rwheel_pivot -= chromos[i]->fitness;
+          }
         }
       }
-    }*/
-
-    /*
-    for(size_t i {}; i < pop; i++) {
-      chromos[i]->print();
     }
-    cout << "test" << endl;
-    auto x = chromos[1];
-    chromos[1] = chromos[0];
-    chromos[0] = x;
-    for(size_t i {}; i < pop; i++) {
-      chromos[i]->print();
-    }
- */
 
-    found = true;
+
+  /*  cout << "test" << endl;
+    for(size_t i {}; i < pop; i++) {
+      tchromos[i]->print();
+    }
+    cout << endl; */
+
+    for (size_t i {}; i < (pop/2); i++) {
+      int p1 = Nature::random_int(pop);
+      int p2 = Nature::random_int(pop);
+      while (p2 == p1) {
+        p2 = Nature::random_int(pop);
+      }
+
+      int p1a = tchromos[p1]->ch[2];
+      int p1b = tchromos[p1]->ch[3];
+      tchromos[p1]->ch[2] = tchromos[p2]->ch[0];
+      tchromos[p1]->ch[3] = tchromos[p2]->ch[1];
+      tchromos[p2]->ch[0] = p1a;
+      tchromos[p2]->ch[1] = p1b;
+    }
+
+   /* cout << "test" << endl;
+    for(size_t i {}; i < pop; i++) {
+      tchromos[i]->print();
+    }
+    cout << endl; */
+
+    int total_gene = pop * NumericalChromo::CHROMO_LEN;
+    double mrate = 0.1;
+    int num_of_m_gene = static_cast<int>(total_gene * mrate);
+    vector<int> pos;
+    if (pos.empty()) {
+      pos.push_back(Nature::random_int(total_gene));
+    }
+    while (pos.size() < static_cast<size_t>(num_of_m_gene)) {
+      int x = Nature::random_int(total_gene);
+      bool exist = false;
+      for (auto ele : pos) {
+        if (ele == x) {
+            exist = true;
+        }
+      }
+      if (!exist) {
+        pos.push_back(x);
+      }
+    }
+    for (size_t i {}; i < pos.size(); i++) {
+      size_t tch_pos = static_cast<size_t>(pos[i] / 4);
+      int gene_pos = pos[i] % 4;
+      tchromos[tch_pos]->ch[gene_pos] = Nature::random_int(30);
+    }
+
+    /*cout << "test" << endl;
+    for(size_t i {}; i < pop; i++) {
+      tchromos[i]->print();
+    }
+    cout << endl; */
+
+    for(size_t i {}; i < pop; i++) {
+      chromos[i] = tchromos[i];
+    }
+
+    for (size_t i {}; i < pop; i++) {
+      if (chromos[i]->cal_fitness() == 1.0) {
+        found = true;
+        cout << "loop: "<< loop_count << endl;
+        chromos[i]->print();
+      }
+    }
+
+    loop_count++;
   }
 
     /*
